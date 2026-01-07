@@ -1,6 +1,7 @@
 import abc
 import logging
 import timeit
+import numpy as np
 from dataclasses import dataclass
 
 import jax
@@ -310,7 +311,7 @@ class raPDHG(abc.ABC):
     eps_rel: float = 1e-4
     eps_primal_infeasible: float = 1e-8
     eps_dual_infeasible: float = 1e-8
-    # time_sec_limit: float = float("inf")
+    time_sec_limit: float = float("inf")
     iteration_limit: int = jnp.iinfo(jnp.int32).max
     l_inf_ruiz_iterations: int = 10
     l2_norm_rescaling: bool = False
@@ -344,7 +345,7 @@ class raPDHG(abc.ABC):
             eps_rel=self.eps_rel,
             eps_primal_infeasible=self.eps_primal_infeasible,
             eps_dual_infeasible=self.eps_dual_infeasible,
-            # time_sec_limit=self.time_sec_limit,
+            time_sec_limit=self.time_sec_limit,
             iteration_limit=self.iteration_limit,
         )
         self._restart_params = RestartParameters(
@@ -510,6 +511,8 @@ class raPDHG(abc.ABC):
             delta_primal=jnp.zeros(primal_size),
             delta_dual=jnp.zeros(dual_size),
             delta_primal_product=jnp.zeros(dual_size),
+            # iteration_start_time=timeit.default_timer(),
+            iteration_start_time=jnp.array(timeit.default_timer(), dtype=jnp.float64)
         )
 
         last_restart_info = RestartInfo(
@@ -621,6 +624,7 @@ class raPDHG(abc.ABC):
             num_steps_tried=solver_state.num_steps_tried + line_search_iter,
             num_iterations=solver_state.num_iterations + 1,
             termination_status=TerminationStatus.UNSPECIFIED,
+            iteration_start_time=solver_state.iteration_start_time,
         )
 
     def take_multiple_steps(
@@ -722,6 +726,19 @@ class raPDHG(abc.ABC):
         tuple
             The updated solver state, the updated last restart info, whether to terminate, the scaled problem, and the cached quadratic programming information.
         """
+        
+        # Sample host clock at execution time using jax.pure_callback
+        result_shape = jax.ShapeDtypeStruct((), jnp.float64)
+        current_time = jax.pure_callback(
+            lambda _arg: np.array(timeit.default_timer(), dtype=np.float64),
+            result_shape,
+            None,
+        )
+        elapsed_time = current_time - solver_state.iteration_start_time
+        jax.debug.print("solver_state.iteration_start_time: {}", solver_state.iteration_start_time)
+        jax.debug.print("current_time: {}", current_time)
+        jax.debug.print("elapsed_time: {}", elapsed_time)
+    
         # Check for termination
         new_should_terminate, new_termination_status, new_convergence_information = (
             check_termination_criteria(
@@ -730,7 +747,7 @@ class raPDHG(abc.ABC):
                 self._termination_criteria,
                 qp_cache,
                 solver_state.numerical_error,
-                1.0,
+                elapsed_time,
                 self.optimality_norm,
                 average=True,
                 infeasibility_detection=self.infeasibility_detection,
@@ -978,6 +995,7 @@ class raPDHG(abc.ABC):
         display_iteration_stats_heading()
 
         iteration_start_time = timeit.default_timer()
+        jax.debug.print("solver_state.iteration_start_time: {}", solver_state.iteration_start_time)
         # Initial iterations, where restart will be checked every iteration.
         (solver_state, last_restart_info, should_terminate, _, _) = while_loop(
             cond_fun=lambda state: state[2] == False,

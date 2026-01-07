@@ -627,6 +627,7 @@ def perform_restart(
         num_steps_tried=solver_state.num_steps_tried,
         num_iterations=solver_state.num_iterations,
         termination_status=solver_state.termination_status,
+        iteration_start_time=solver_state.iteration_start_time,
     )
 
     return restarted_solver_state, new_last_restart_info

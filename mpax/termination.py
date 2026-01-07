@@ -33,8 +33,8 @@ def validate_termination_criteria(criteria: TerminationCriteria) -> None:
         raise ValueError("eps_primal_infeasible must be nonnegative.")
     if criteria.eps_dual_infeasible < 0:
         raise ValueError("eps_dual_infeasible must be nonnegative.")
-    # if criteria.time_sec_limit <= 0:
-    #     raise ValueError("time_sec_limit must be positive.")
+    if criteria.time_sec_limit <= 0:
+        raise ValueError("time_sec_limit must be positive.")
     if criteria.iteration_limit <= 0:
         raise ValueError("iteration_limit must be positive.")
 
@@ -218,12 +218,15 @@ def check_termination_criteria(
         lambda: (should_terminate, termination_status),
     )
 
-    # should_terminate, termination_status = jax.lax.cond(
-    #     (should_terminate == False) & (elapsed_time >= criteria.time_sec_limit),
-    #     lambda _: (True, TerminationStatus.TIME_LIMIT),
-    #     lambda _: (should_terminate, termination_status),
-    #     operand=None,
-    # )
+    jax.debug.print("time_sec_limit: {}", criteria.time_sec_limit)
+    jax.debug.print("elapsed_time: {}", elapsed_time)
+    jax.debug.print("(elapsed_time >= criteria.time_sec_limit): {}", elapsed_time >= criteria.time_sec_limit)
+    should_terminate, termination_status = jax.lax.cond(
+        (should_terminate == False) & (elapsed_time >= criteria.time_sec_limit),
+        lambda _: (True, TerminationStatus.TIME_LIMIT),
+        lambda _: (should_terminate, termination_status),
+        operand=None,
+    )
 
     should_terminate, termination_status = jax.lax.cond(
         (should_terminate == False) & numerical_error,

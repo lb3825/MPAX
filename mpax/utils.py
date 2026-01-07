@@ -88,7 +88,7 @@ class TerminationCriteria(NamedTuple):
     eps_rel: float = 1.0e-6
     eps_primal_infeasible: float = 1.0e-8
     eps_dual_infeasible: float = 1.0e-8
-    # time_sec_limit: float = float("inf")
+    time_sec_limit: float = float("inf")
     iteration_limit: int = jnp.iinfo(jnp.int32).max
 
 
@@ -642,6 +642,7 @@ class PdhgSolverState:
     num_iterations: int
     termination_status: TerminationStatus
     weights_sum: float = 0.0
+    iteration_start_time: jnp.ndarray = jnp.array(0.0)
     # Average solutions are used in raPDHG
     avg_primal_solution: Optional[jnp.ndarray] = None
     avg_dual_solution: Optional[jnp.ndarray] = None
