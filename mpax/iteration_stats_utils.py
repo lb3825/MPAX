@@ -198,10 +198,13 @@ def compute_convergence_information(
         jnp.maximum(problem.right_hand_side - primal_product, 0.0),
     )
 
+    primal_obj_lin = jnp.dot(problem.objective_vector, primal_iterate)
+    primal_obj_quad = jnp.dot(primal_iterate, primal_obj_product)
+    
     primal_objective = (
         problem.objective_constant
-        + jnp.dot(problem.objective_vector, primal_iterate)
-        + 0.5 * jnp.dot(primal_iterate, primal_obj_product)
+        + primal_obj_lin
+        + 0.5 * primal_obj_quad
     )
 
     violation_info = jnp.concatenate(
@@ -233,12 +236,15 @@ def compute_convergence_information(
         jnp.concatenate([dual_residual, reduced_costs_violation]), ord=norm_ord
     )
     dual_solution_norm = jnp.linalg.norm(dual_iterate, ord=norm_ord)
+    # relative_primal_residual_norm = primal_residual_norm / (
+    #     eps_ratio
+    #     + jnp.maximum(
+    #         qp_cache.primal_right_hand_side_norm,
+    #         jnp.linalg.norm(primal_product, ord=norm_ord),
+    #     )
+    # )
     relative_primal_residual_norm = primal_residual_norm / (
-        eps_ratio
-        + jnp.maximum(
-            qp_cache.primal_right_hand_side_norm,
-            jnp.linalg.norm(primal_product, ord=norm_ord),
-        )
+        eps_ratio + jnp.linalg.norm(primal_product, ord=norm_ord)
     )
     relative_dual_residual_norm = dual_residual_norm / (
         eps_ratio
@@ -254,8 +260,16 @@ def compute_convergence_information(
         dual_residual_norm == 0.0, lambda: dual_objective, lambda: -jnp.inf
     )
     absolute_optimality_gap = jnp.abs(primal_objective - dual_objective)
+    # relative_optimality_gap = absolute_optimality_gap / (
+    #     eps_ratio + jnp.maximum(abs(primal_objective), abs(dual_objective))
+    # )
     relative_optimality_gap = absolute_optimality_gap / (
-        eps_ratio + jnp.maximum(abs(primal_objective), abs(dual_objective))
+        eps_ratio + jnp.maximum(
+            jnp.maximum(
+                abs(primal_obj_quad), 
+                abs(primal_obj_lin)
+            ),
+            abs(dual_objective))
     )
     return ConvergenceInformation(
         PointType.POINT_TYPE_AVERAGE_ITERATE,

@@ -991,7 +991,6 @@ class raPDHG(abc.ABC):
         display_iteration_stats_heading()
 
         iteration_start_time = timeit.default_timer()
-        jax.debug.print("solver_state.iteration_start_time: {}", solver_state.iteration_start_time)
         # Initial iterations, where restart will be checked every iteration.
         (solver_state, last_restart_info, should_terminate, _, _) = while_loop(
             cond_fun=lambda state: state[2] == False,
