@@ -512,7 +512,7 @@ class raPDHG(abc.ABC):
             delta_dual=jnp.zeros(dual_size),
             delta_primal_product=jnp.zeros(dual_size),
             # iteration_start_time=timeit.default_timer(),
-            iteration_start_time=jnp.array(timeit.default_timer(), dtype=jnp.float64)
+            iteration_start_time=jnp.array(timeit.default_timer(), dtype=jnp.float64),
         )
 
         last_restart_info = RestartInfo(
@@ -727,7 +727,6 @@ class raPDHG(abc.ABC):
             The updated solver state, the updated last restart info, whether to terminate, the scaled problem, and the cached quadratic programming information.
         """
         
-        # Sample host clock at execution time using jax.pure_callback
         result_shape = jax.ShapeDtypeStruct((), jnp.float64)
         current_time = jax.pure_callback(
             lambda _arg: np.array(timeit.default_timer(), dtype=np.float64),
@@ -735,9 +734,6 @@ class raPDHG(abc.ABC):
             None,
         )
         elapsed_time = current_time - solver_state.iteration_start_time
-        jax.debug.print("solver_state.iteration_start_time: {}", solver_state.iteration_start_time)
-        jax.debug.print("current_time: {}", current_time)
-        jax.debug.print("elapsed_time: {}", elapsed_time)
     
         # Check for termination
         new_should_terminate, new_termination_status, new_convergence_information = (

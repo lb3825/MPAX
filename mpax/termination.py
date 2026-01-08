@@ -218,9 +218,6 @@ def check_termination_criteria(
         lambda: (should_terminate, termination_status),
     )
 
-    jax.debug.print("time_sec_limit: {}", criteria.time_sec_limit)
-    jax.debug.print("elapsed_time: {}", elapsed_time)
-    jax.debug.print("(elapsed_time >= criteria.time_sec_limit): {}", elapsed_time >= criteria.time_sec_limit)
     should_terminate, termination_status = jax.lax.cond(
         (should_terminate == False) & (elapsed_time >= criteria.time_sec_limit),
         lambda _: (True, TerminationStatus.TIME_LIMIT),
